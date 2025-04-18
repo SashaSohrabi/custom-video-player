@@ -29,6 +29,7 @@
     </button>
     <div class="player-controls__slider-wrapper">
       <input
+        ref="volume"
         type="range"
         name="volume"
         class="player-controls__slider"
@@ -102,7 +103,14 @@
 </template>
 
 <script setup lang="ts">
-import { useTemplateRef, ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import {
+  useTemplateRef,
+  ref,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  watch,
+} from 'vue';
 import { throttle } from 'lodash-es';
 import { formatTime } from '@/utilities/timeUtils';
 
@@ -124,10 +132,13 @@ const emit = defineEmits<{
   (e: 'skip', time: number): void;
   (e: 'update:volume', value: number): void;
   (e: 'update:playbackRate', value: number): void;
+  (e: 'update:isMuted', value: boolean): void;
 }>();
 
 const progressRef = useTemplateRef<HTMLDivElement>('progress');
 const tooltipRef = useTemplateRef<HTMLDivElement>('tooltip');
+const volumeRef = useTemplateRef<HTMLInputElement>('volume');
+
 const pointerdown = ref(false);
 const tooltipLeft = ref('0px');
 const hoveredTime = ref<number | null>(null);
@@ -167,6 +178,29 @@ const skipButtonMeta = computed(() => ({
   forward: { title: 'Skip Forward', icon: '\u00BB', text: '25s' },
   backward: { title: 'Skip Backward', icon: '\u00AB', text: '10s' },
 }));
+
+watch(
+  () => props.isMuted,
+  () => {
+    const input = volumeRef.value as HTMLInputElement | null;
+    if (!input) return;
+
+    const volumeValue = props.isMuted ? 0 : 1;
+    if (parseFloat(input.value) !== volumeValue) {
+      emit('update:volume', volumeValue);
+    }
+  }
+);
+
+watch(
+  () => props.volume,
+  (newVolume) => {
+    const isMutedNow = newVolume === 0;
+    if (props.isMuted !== isMutedNow) {
+      emit('update:isMuted', isMutedNow);
+    }
+  }
+);
 
 const onPointerDown = (e: PointerEvent) => {
   pointerdown.value = true;

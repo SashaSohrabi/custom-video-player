@@ -12,7 +12,6 @@
     ></video>
     <PlayerControls
       :is-playing="isPlaying"
-      :is-muted="isMuted"
       :is-fullscreen="isFullscreen"
       :progress-percent="progressPercent"
       :duration="duration"
@@ -23,6 +22,7 @@
       @skip="skip"
       v-model:volume="volume"
       v-model:playback-rate="playbackRate"
+      v-model:is-muted="isMuted"
     />
   </div>
 </template>
@@ -106,13 +106,11 @@ const toggleFullscreen = () => {
       (playerContainer as any).webkitRequestFullscreen?.() ||
       (playerContainer as any).mozRequestFullScreen?.() ||
       (playerContainer as any).msRequestFullscreen?.();
-      isFullscreen.value = true;
   } else {
     document.exitFullscreen?.() ||
       (document as any).webkitExitFullscreen?.() ||
       (document as any).mozCancelFullScreen?.() ||
       (document as any).msExitFullscreen?.();
-      isFullscreen.value = false;
   }
 };
 
