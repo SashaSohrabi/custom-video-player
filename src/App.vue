@@ -7,30 +7,91 @@
       @click="togglePlay"
       @play="updateButton"
       @pause="updateButton"
+      @timeupdate="handleProgress"
+      @loadedmetadata="onLoadedMetadata"
     ></video>
-    <div class="player__controls">
-      <button class="player__button" title="Toggle Play" @click="togglePlay">
-        {{ isPlaying ? '❚ ❚' : '►' }}
-      </button>
-    </div>
+    <PlayerControls
+      :is-playing="isPlaying"
+      :is-muted="isMuted"
+      :progress-percent="progressPercent"
+      :duration="duration"
+      @toggle-play="togglePlay"
+      @toggle-mute="toggleMute"
+      @seek="seekTo"
+      @skip="skip"
+      v-model:volume="volume"
+      v-model:playback-rate="playbackRate"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, useTemplateRef, watch } from 'vue';
+import { withVideo } from './composables/useVideo';
+import PlayerControls from './components/PlayerControls.vue';
+
 const videoSrc =
   'https://meetyoo-code-challenge.s3.eu-central-1.amazonaws.com/live/S14JJ9Z6PKoO/bf1d4883-5305-4d65-a299-cbb654ef1ed9/video.webm'; //TODO: Move to constants
 
-const video = ref<HTMLVideoElement | null>(null);
+const video = useTemplateRef<HTMLVideoElement>('video');
 const isPlaying = ref(false);
+const isMuted = ref(false);
+const volume = ref(1);
+const playbackRate = ref(1);
+const progressPercent = ref(0);
+const duration = ref(0);
 
 const togglePlay = () => {
-  if (!video.value) return;
-  video.value.paused ? video.value.play() : video.value.pause();
+  withVideo(video, (v) => (v.paused ? v.play() : v.pause()));
 };
+
+watch(volume, (newVolume) => {
+  withVideo(video, (v) => {
+    v.volume = newVolume;
+  });
+});
+
+watch(playbackRate, (newRate) => {
+  withVideo(video, (v) => {
+    v.playbackRate = newRate;
+  });
+});
+
+const toggleMute = () => {
+  withVideo(video, (v) => {
+    v.muted = !v.muted;
+    isMuted.value = v.muted;
+  });
+};
+
 const updateButton = () => {
-  if (!video.value) return;
-  isPlaying.value = !video.value.paused;
+  withVideo(video, (v) => {
+    isPlaying.value = !v.paused;
+  });
+};
+
+const handleProgress = () => {
+  withVideo(video, (v) => {
+    progressPercent.value = (v.currentTime / v.duration) * 100;
+  });
+};
+
+const seekTo = (time: number) => {
+  withVideo(video, (v) => {
+    v.currentTime = time;
+  });
+};
+
+const skip = (time: number) => {
+  withVideo(video, (v) => {
+    v.currentTime += time;
+  })
+};
+
+const onLoadedMetadata = () => {
+  withVideo(video, (v) => {
+    duration.value = v.duration;
+  });
 };
 </script>
 
@@ -47,29 +108,10 @@ const updateButton = () => {
     width: 100%;
   }
 
-  &__button {
-    background: none;
-    border: 0;
-    line-height: 1;
-    color: $white;
-    text-align: center;
-    outline: 0;
-    padding: 0;
-    cursor: pointer;
-    max-width: 50px;
-
-    &:focus {
-      border-color: $primary-yellow;
+  &:hover {
+    .player-controls {
+      transform: translateY(0);
     }
-  }
-
-  &__controls {
-    display: flex;
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    flex-wrap: wrap;
-    background: rgba($black, 0.1);
   }
 }
 </style>
