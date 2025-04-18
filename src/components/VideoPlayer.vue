@@ -1,6 +1,7 @@
 <template>
-  <div class="player">
+  <div class="player" ref="videoWrapper">
     <video
+      preload="auto"
       class="player__video"
       ref="video"
       :src="videoSrc"
@@ -30,21 +31,24 @@
 
 <script setup lang="ts">
 import { ref, useTemplateRef, watch, onMounted, onBeforeUnmount } from 'vue';
-import { withVideo } from '@/composables/useVideo';
 import PlayerControls from '@/components/PlayerControls.vue';
+import { withVideo } from '@/composables/useVideo';
+import { useFullscreen } from '@/composables/useFullscreen';
 
 const videoSrc =
   'https://meetyoo-code-challenge.s3.eu-central-1.amazonaws.com/live/S14JJ9Z6PKoO/bf1d4883-5305-4d65-a299-cbb654ef1ed9/video.webm'; //TODO: Move to constants
 
 const video = useTemplateRef<HTMLVideoElement>('video');
+const videoWrapper = useTemplateRef<HTMLElement>('videoWrapper');
 const isPlaying = ref(false);
 const isMuted = ref(false);
-const isFullscreen = ref(false);
 const volume = ref(1);
 const playbackRate = ref(1);
 const progressPercent = ref(0);
 const currentTime = ref(0);
 const duration = ref(0); // in seconds
+
+const { isFullscreen, toggleFullscreen } = useFullscreen(videoWrapper);
 
 const togglePlay = () => {
   withVideo(video, (v) => (v.paused ? v.play() : v.pause()));
@@ -100,34 +104,11 @@ const onLoadedMetadata = () => {
   });
 };
 
-const toggleFullscreen = () => {
-  const playerContainer = video.value?.parentElement;
-  if (!playerContainer) return;
-
-  if (!document.fullscreenElement) {
-    playerContainer?.requestFullscreen?.() ||
-      (playerContainer as any).webkitRequestFullscreen?.() ||
-      (playerContainer as any).mozRequestFullScreen?.() ||
-      (playerContainer as any).msRequestFullscreen?.();
-  } else {
-    document.exitFullscreen?.() ||
-      (document as any).webkitExitFullscreen?.() ||
-      (document as any).mozCancelFullScreen?.() ||
-      (document as any).msExitFullscreen?.();
-  }
-};
-
-const handleFullscreenChange = () => {
-  isFullscreen.value = !!document.fullscreenElement;
-};
-
 onMounted(() => {
-  document.addEventListener('fullscreenchange', handleFullscreenChange);
+  video.value?.load();
 });
 
-onBeforeUnmount(() => {
-  document.removeEventListener('fullscreenchange', handleFullscreenChange);
-});
+onBeforeUnmount(() => {});
 </script>
 
 <style scoped lang="scss">
