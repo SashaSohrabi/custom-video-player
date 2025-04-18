@@ -8,14 +8,15 @@
       @mouseleave="onPointerLeave"
     >
       <div
+        ref="tooltip"
         v-if="hoveredTime"
-        class="player-controls__slider-tooltip"
+        class="player-controls__tooltip"
         :style="{ left: tooltipLeft }"
       >
         {{ formatTime(hoveredTime) }}
       </div>
       <div
-        class="player-controls__progress-filled"
+        class="player-controls__progress-bar"
         :style="{ width: `${progressPercent}%` }"
       ></div>
     </div>
@@ -44,7 +45,7 @@
       >
         {{ isMuted ? '🔇' : '🔊' }}
       </button>
-      <div class="player-controls__slider-tooltip">🔊 {{ volumePercent }}</div>
+      <div class="player-controls__tooltip">🔊 {{ volumePercent }}</div>
     </div>
     <div class="player-controls__slider-wrapper">
       <input
@@ -62,9 +63,7 @@
           )
         "
       />
-      <div class="player-controls__slider-tooltip">
-        ⏩ {{ playbackRateValue }}
-      </div>
+      <div class="player-controls__tooltip">⏩ {{ playbackRateValue }}</div>
     </div>
 
     <button class="player-controls__button" @click="$emit('skip', -10)">
@@ -99,7 +98,8 @@ const emit = defineEmits<{
   (e: 'update:playbackRate', value: number): void;
 }>();
 
-const progress = useTemplateRef<HTMLDivElement>('progress');
+const progressRef = useTemplateRef<HTMLDivElement>('progress');
+const tooltipRef = useTemplateRef<HTMLDivElement>('tooltip');
 const pointerdown = ref(false);
 const tooltipLeft = ref('0px');
 const hoveredTime = ref<number | null>(null);
@@ -145,10 +145,8 @@ const seekToPointer = (e: PointerEvent) => {
 };
 
 const getTooltipWidth = () => {
-  const el = progress.value?.querySelector(
-    '.player-controls__slider-tooltip'
-  ) as HTMLElement | null;
-  return el ? el.offsetWidth : 34;
+  const el = tooltipRef.value;
+  return el && el.offsetWidth > 0 ? el.offsetWidth : 33;
 };
 
 const setTooltipLeftPosition = (x: number, containerWidth: number) => {
@@ -161,9 +159,9 @@ const setTooltipLeftPosition = (x: number, containerWidth: number) => {
 };
 
 const getScrubData = (e: PointerEvent) => {
-  if (!progress.value) return null;
+  if (!progressRef.value) return null;
 
-  const rect = progress.value.getBoundingClientRect();
+  const rect = progressRef.value.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const percent = Math.min(Math.max(x / rect.width, 0), 1);
   const scrubTime = percent * props.duration;
@@ -225,7 +223,7 @@ onBeforeUnmount(() => {
     background: transparent;
     cursor: ew-resize;
 
-    .player-controls__progress-filled {
+    &-bar {
       position: absolute;
       top: 0;
       left: 0;
@@ -235,9 +233,13 @@ onBeforeUnmount(() => {
       transition: width 0.1s ease;
     }
 
-    &:hover .player-controls__slider-tooltip {
+    &:hover .player-controls__tooltip {
       opacity: 1;
       pointer-events: auto;
+
+      @media (hover: none) and (pointer: coarse) {
+        display: none;
+      }
     }
   }
 
@@ -247,13 +249,13 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
 
-    &:hover .player-controls__slider-tooltip {
+    &:hover .player-controls__tooltip {
       opacity: 1;
       pointer-events: auto;
     }
   }
 
-  &__slider-tooltip {
+  &__tooltip {
     position: absolute;
     top: -20px;
     background: rgba($black, 0.85);
@@ -268,61 +270,6 @@ onBeforeUnmount(() => {
     opacity: 0;
     transition: opacity 0.2s ease;
     pointer-events: none;
-  }
-
-  input[type='range'] {
-    -webkit-appearance: none;
-    background: transparent;
-    width: 100%;
-    margin: 0 5px;
-
-    &:focus {
-      outline: none;
-    }
-
-    &::-webkit-slider-runnable-track {
-      width: 100%;
-      height: 8.4px;
-      cursor: pointer;
-      background: rgba($white, 0.8);
-      border-radius: 1.3px;
-      border: 0.2px solid rgba(1, 1, 1, 0);
-      box-shadow: 1px 1px 1px transparent, 0 0 1px transparent;
-    }
-
-    &::-webkit-slider-thumb {
-      height: 15px;
-      width: 15px;
-      border-radius: 50px;
-      background: $primary-green;
-      cursor: pointer;
-      -webkit-appearance: none;
-      margin-top: -3.5px;
-      box-shadow: 0 0 2px rgba($black, 0.2);
-    }
-
-    &:focus::-webkit-slider-runnable-track {
-      background: $light-gray;
-    }
-
-    &::-moz-range-track {
-      width: 100%;
-      height: 8.4px;
-      cursor: pointer;
-      background: $white;
-      border-radius: 1.3px;
-      border: 0.2px solid rgba(1, 1, 1, 0);
-      box-shadow: 1px 1px 1px transparent, 0 0 1px transparent;
-    }
-
-    &::-moz-range-thumb {
-      height: 15px;
-      width: 15px;
-      border-radius: 50px;
-      background: $primary-green;
-      cursor: pointer;
-      box-shadow: none;
-    }
   }
 }
 </style>
