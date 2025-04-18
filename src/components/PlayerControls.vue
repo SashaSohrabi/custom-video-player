@@ -8,7 +8,7 @@
       @mouseleave="onPointerLeave"
     >
       <div
-        v-if="hoveredTime !== null"
+        v-if="hoveredTime"
         class="player-controls__slider-tooltip"
         :style="{ left: tooltipLeft }"
       >
@@ -79,6 +79,7 @@
 <script setup lang="ts">
 import { useTemplateRef, ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { throttle } from 'lodash-es';
+import { formatTime } from '@/utilities/timeUtils';
 
 const props = defineProps<{
   progressPercent: number;
@@ -170,12 +171,6 @@ const getScrubData = (e: PointerEvent) => {
   setTooltipLeftPosition(x, rect.width);
 
   return { x, percent, scrubTime };
-};
-
-const formatTime = (time: number): string => {
-  const minutes = Math.floor(time / 60);
-  const seconds = Math.floor(time % 60);
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 };
 
 onMounted(() => {

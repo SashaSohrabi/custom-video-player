@@ -39,7 +39,7 @@ const isMuted = ref(false);
 const volume = ref(1);
 const playbackRate = ref(1);
 const progressPercent = ref(0);
-const duration = ref(0);
+const duration = ref(0); // in seconds
 
 const togglePlay = () => {
   withVideo(video, (v) => (v.paused ? v.play() : v.pause()));
