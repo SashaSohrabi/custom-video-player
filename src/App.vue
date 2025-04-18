@@ -10,8 +10,8 @@ import VideoPlayer from './components/VideoPlayer.vue';
 
 <style scoped lang="scss">
 .video-wrapper {
-  padding: 30px;
+  padding: 25px;
   width: 100%;
-  max-width: 750px;
+  max-width: 800px;
 }
 </style>

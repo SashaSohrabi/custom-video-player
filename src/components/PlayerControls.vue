@@ -20,8 +20,12 @@
         :style="{ width: `${progressPercent}%` }"
       ></div>
     </div>
-    <button class="player-controls__button" @click="$emit('toggle-play')">
-      {{ isPlaying ? '❚ ❚' : '►' }}
+    <button
+      class="player-controls__button"
+      :title="playButtonState.title"
+      @click="$emit('toggle-play')"
+    >
+      {{ playButtonState.icon }}
     </button>
     <div class="player-controls__slider-wrapper">
       <input
@@ -32,6 +36,7 @@
         max="1"
         step="0.05"
         :value="props.volume"
+        :title="volumeMeta.title"
         @input="
           $emit(
             'update:volume',
@@ -39,13 +44,16 @@
           )
         "
       />
+      <div class="player-controls__tooltip">
+        {{ volumeMeta.label }}
+      </div>
       <button
         class="player-controls__button player-controls__button--mute"
         @click="$emit('toggle-mute')"
+        :title="muteButtonState.title"
       >
-        {{ isMuted ? '🔇' : '🔊' }}
+        {{ muteButtonState.icon }}
       </button>
-      <div class="player-controls__tooltip">🔊 {{ volumePercent }}</div>
     </div>
     <div class="player-controls__slider-wrapper">
       <input
@@ -56,6 +64,7 @@
         max="2"
         step="0.1"
         :value="props.playbackRate"
+        :title="playbackRateMeta.title"
         @input="
           $emit(
             'update:playbackRate',
@@ -63,14 +72,31 @@
           )
         "
       />
-      <div class="player-controls__tooltip">⏩ {{ playbackRateValue }}</div>
+      <div class="player-controls__tooltip">
+        {{ playbackRateMeta.label }}
+      </div>
     </div>
 
-    <button class="player-controls__button" @click="$emit('skip', -10)">
-      « 10s
+    <button
+      class="player-controls__button"
+      :title="skipButtonMeta.backward.title"
+      @click="$emit('skip', -10)"
+    >
+      {{ `${skipButtonMeta.backward.icon} ${skipButtonMeta.backward.text}` }}
     </button>
-    <button class="player-controls__button" @click="$emit('skip', 25)">
-      25s »
+    <button
+      class="player-controls__button"
+      :title="skipButtonMeta.forward.title"
+      @click="$emit('skip', 25)"
+    >
+      {{ `${skipButtonMeta.forward.text} ${skipButtonMeta.forward.icon}` }}
+    </button>
+    <button
+      class="player-controls__button"
+      :title="fullscreenButtonState.title"
+      @click="$emit('toggle-fullscreen')"
+    >
+      {{ fullscreenButtonState.icon }}
     </button>
   </div>
 </template>
@@ -84,6 +110,7 @@ const props = defineProps<{
   progressPercent: number;
   isPlaying: boolean;
   isMuted: boolean;
+  isFullscreen: boolean;
   duration: number;
   volume: number;
   playbackRate: number;
@@ -92,6 +119,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'toggle-play'): void;
   (e: 'toggle-mute'): void;
+  (e: 'toggle-fullscreen'): void;
   (e: 'seek', time: number): void;
   (e: 'skip', time: number): void;
   (e: 'update:volume', value: number): void;
@@ -106,6 +134,39 @@ const hoveredTime = ref<number | null>(null);
 
 const volumePercent = computed(() => `${Math.round(props.volume * 100)}%`);
 const playbackRateValue = computed(() => props.playbackRate.toFixed(1));
+
+const playButtonState = computed(() =>
+  props.isPlaying
+    ? { title: 'Pause', icon: '\u275A\u275A' }
+    : { title: 'Play', icon: '\u25BA' }
+);
+
+const muteButtonState = computed(() =>
+  props.isMuted
+    ? { title: 'Unmute', icon: '\u{1F507}' }
+    : { title: 'Mute', icon: '\u{1F50A}' }
+);
+
+const fullscreenButtonState = computed(() =>
+  props.isFullscreen
+    ? { title: 'Exit Fullscreen', icon: '\u{1F5D6}' }
+    : { title: 'Enter Fullscreen', icon: '\u26F6' }
+);
+
+const playbackRateMeta = computed(() => ({
+  title: 'Playback Rate',
+  label: `\u23E9 ${playbackRateValue.value}`,
+}));
+
+const volumeMeta = computed(() => ({
+  title: 'Volume',
+  label: `\u{1F50A} ${volumePercent.value}`,
+}));
+
+const skipButtonMeta = computed(() => ({
+  forward: { title: 'Skip Forward', icon: '\u00BB', text: '25s' },
+  backward: { title: 'Skip Backward', icon: '\u00AB', text: '10s' },
+}));
 
 const onPointerDown = (e: PointerEvent) => {
   pointerdown.value = true;

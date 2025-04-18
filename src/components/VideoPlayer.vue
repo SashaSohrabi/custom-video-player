@@ -13,10 +13,12 @@
     <PlayerControls
       :is-playing="isPlaying"
       :is-muted="isMuted"
+      :is-fullscreen="isFullscreen"
       :progress-percent="progressPercent"
       :duration="duration"
       @toggle-play="togglePlay"
       @toggle-mute="toggleMute"
+      @toggle-fullscreen="toggleFullscreen"
       @seek="seekTo"
       @skip="skip"
       v-model:volume="volume"
@@ -26,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, useTemplateRef, watch } from 'vue';
+import { ref, useTemplateRef, watch, onMounted, onBeforeUnmount } from 'vue';
 import { withVideo } from '@/composables/useVideo';
 import PlayerControls from '@/components/PlayerControls.vue';
 
@@ -36,6 +38,7 @@ const videoSrc =
 const video = useTemplateRef<HTMLVideoElement>('video');
 const isPlaying = ref(false);
 const isMuted = ref(false);
+const isFullscreen = ref(false);
 const volume = ref(1);
 const playbackRate = ref(1);
 const progressPercent = ref(0);
@@ -85,7 +88,7 @@ const seekTo = (time: number) => {
 const skip = (time: number) => {
   withVideo(video, (v) => {
     v.currentTime += time;
-  })
+  });
 };
 
 const onLoadedMetadata = () => {
@@ -93,6 +96,37 @@ const onLoadedMetadata = () => {
     duration.value = v.duration;
   });
 };
+
+const toggleFullscreen = () => {
+  const playerContainer = video.value?.parentElement;
+  if (!playerContainer) return;
+
+  if (!document.fullscreenElement) {
+    playerContainer?.requestFullscreen?.() ||
+      (playerContainer as any).webkitRequestFullscreen?.() ||
+      (playerContainer as any).mozRequestFullScreen?.() ||
+      (playerContainer as any).msRequestFullscreen?.();
+      isFullscreen.value = true;
+  } else {
+    document.exitFullscreen?.() ||
+      (document as any).webkitExitFullscreen?.() ||
+      (document as any).mozCancelFullScreen?.() ||
+      (document as any).msExitFullscreen?.();
+      isFullscreen.value = false;
+  }
+};
+
+const handleFullscreenChange = () => {
+  isFullscreen.value = !!document.fullscreenElement;
+};
+
+onMounted(() => {
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('fullscreenchange', handleFullscreenChange);
+});
 </script>
 
 <style scoped lang="scss">
