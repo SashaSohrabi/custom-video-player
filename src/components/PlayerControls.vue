@@ -27,6 +27,9 @@
     >
       {{ playButtonState.icon }}
     </button>
+    <div class="player-controls__time">
+      {{ timeDisplay }}
+    </div>
     <div class="player-controls__slider-wrapper">
       <input
         ref="volume"
@@ -48,14 +51,14 @@
       <div class="player-controls__tooltip">
         {{ volumeMeta.label }}
       </div>
-      <button
-        class="player-controls__button player-controls__button--mute"
-        @click="$emit('toggle-mute')"
-        :title="muteButtonState.title"
-      >
-        {{ muteButtonState.icon }}
-      </button>
     </div>
+    <button
+      class="player-controls__button player-controls__button--mute"
+      @click="$emit('toggle-mute')"
+      :title="muteButtonState.title"
+    >
+      {{ muteButtonState.icon }}
+    </button>
     <div class="player-controls__slider-wrapper">
       <input
         type="range"
@@ -116,6 +119,7 @@ import { formatTime } from '@/utilities/timeUtils';
 
 const props = defineProps<{
   progressPercent: number;
+  currentTime: number;
   isPlaying: boolean;
   isMuted: boolean;
   isFullscreen: boolean;
@@ -145,6 +149,10 @@ const hoveredTime = ref<number | null>(null);
 
 const volumePercent = computed(() => `${Math.round(props.volume * 100)}%`);
 const playbackRateValue = computed(() => props.playbackRate.toFixed(1));
+
+const timeDisplay = computed(() => {
+  return `${formatTime(props.currentTime)} / ${formatTime(props.duration)}`;
+});
 
 const playButtonState = computed(() =>
   props.isPlaying
@@ -286,7 +294,7 @@ onBeforeUnmount(() => {
   width: 100%;
   flex-wrap: wrap;
   transition: all 0.3s;
-  background: rgba($black, 0.1);
+  background: rgba($black, 0.3);
 
   @media (hover: hover) and (pointer: fine) {
     transform: translateY(calc(100% - 5px));
@@ -294,6 +302,13 @@ onBeforeUnmount(() => {
 
   > * {
     flex: 1;
+  }
+
+  &__time {
+    color: $white;
+    font-size: 0.75rem;
+    margin: 0 10px;
+    align-self: center;
   }
 
   &__button {
@@ -307,6 +322,10 @@ onBeforeUnmount(() => {
     cursor: pointer;
     max-width: 50px;
     height: 30px;
+
+    &--mute {
+      margin: 0 10px;
+    }
   }
 
   &__progress {

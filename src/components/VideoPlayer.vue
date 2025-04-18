@@ -15,6 +15,7 @@
       :is-fullscreen="isFullscreen"
       :progress-percent="progressPercent"
       :duration="duration"
+      :current-time="currentTime"
       @toggle-play="togglePlay"
       @toggle-mute="toggleMute"
       @toggle-fullscreen="toggleFullscreen"
@@ -42,6 +43,7 @@ const isFullscreen = ref(false);
 const volume = ref(1);
 const playbackRate = ref(1);
 const progressPercent = ref(0);
+const currentTime = ref(0);
 const duration = ref(0); // in seconds
 
 const togglePlay = () => {
@@ -75,6 +77,7 @@ const updateButton = () => {
 
 const handleProgress = () => {
   withVideo(video, (v) => {
+    currentTime.value = v.currentTime;
     progressPercent.value = (v.currentTime / v.duration) * 100;
   });
 };
