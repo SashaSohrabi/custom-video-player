@@ -6,6 +6,7 @@
       @pointerdown="onPointerDown"
       @pointermove="throttledPointerMove"
       @mouseleave="onPointerLeave"
+      :style="hoveredTime ? chapterHighlightStyle : {}"
     >
       <div
         ref="tooltip"
@@ -15,6 +16,15 @@
       >
         {{ formatTime(hoveredTime) }}
       </div>
+      <div class="player-controls__chapter-overlay">
+        {{ currentHoveredChapter?.title }}
+      </div>
+      <span
+        v-for="(chapter, i) in chapters"
+        :key="i"
+        class="player-controls__chapter-marker"
+        :style="{ left: `${(chapter.time / duration) * 100}%` }"
+      ></span>
       <div
         class="player-controls__progress-bar"
         :style="{ width: `${progressPercent}%` }"
@@ -118,6 +128,7 @@ import {
 } from 'vue';
 import { throttle } from 'lodash-es';
 import { formatTime } from '@/utilities/timeUtils';
+import type { Chapter } from '@/types';
 
 const props = defineProps<{
   progressPercent: number;
@@ -128,6 +139,7 @@ const props = defineProps<{
   duration: number;
   volume: number;
   playbackRate: number;
+  chapters: Chapter[];
 }>();
 
 const emit = defineEmits<{
@@ -148,6 +160,7 @@ const volumeRef = useTemplateRef<HTMLInputElement>('volume');
 const pointerdown = ref(false);
 const tooltipLeft = ref('0px');
 const hoveredTime = ref<number | null>(null);
+const currentHoveredChapter = ref<Chapter | null>(null);
 
 const volumePercent = computed(() => `${Math.round(props.volume * 100)}%`);
 const playbackRateValue = computed(() => props.playbackRate.toFixed(1));
@@ -188,6 +201,27 @@ const skipButtonMeta = computed(() => ({
   forward: { title: 'Skip Forward', icon: '\u21BB', text: '25s' },
   rewind: { title: 'Skip Rewind', icon: '\u21BA', text: '10s' },
 }));
+
+const chapterHighlightStyle = computed(() => {
+  if (!currentHoveredChapter.value || !props.duration) return {};
+
+  const current = currentHoveredChapter.value;
+  const nextIndex =
+    props.chapters.findIndex((ch) => ch.time === current.time) + 1;
+  const next = props.chapters[nextIndex];
+  const start = (current.time / props.duration) * 100;
+  const end = (next ? next.time / props.duration : 1) * 100;
+
+  return {
+    background: `linear-gradient(
+      to right,
+      transparent ${start}%,
+      rgba(97, 221, 1, 0.3) ${start}%,
+      rgba(97, 221, 1, 0.3) ${end}%,
+      transparent ${end}%
+    )`,
+  };
+});
 
 watch(
   () => props.isMuted,
@@ -230,6 +264,7 @@ const onPointerMove = (e: PointerEvent) => {
   if (!data) return;
 
   hoveredTime.value = data.scrubTime;
+  currentHoveredChapter.value = getChapterAt(hoveredTime.value) ?? null;
 
   if (pointerdown.value) {
     emit('seek', data.scrubTime);
@@ -275,6 +310,15 @@ const getScrubData = (e: PointerEvent) => {
 
   return { x, percent, scrubTime };
 };
+
+function getChapterAt(time: number): Chapter | undefined {
+  return props.chapters.find((ch, i) => {
+    const next = props.chapters[i + 1];
+    const end = next ? next.time : props.duration;
+    const isCurrentChapter = time >= ch.time && time < end;
+    return isCurrentChapter;
+  });
+}
 
 onMounted(() => {
   window.addEventListener('pointerup', onPointerUp);
@@ -348,9 +392,9 @@ onBeforeUnmount(() => {
     position: relative;
     display: flex;
     flex-basis: 100%;
-    height: 10px;
+    height: 12px;
     transition: height 0.3s;
-    background: transparent;
+    background: rgba($black, 0.2);
     cursor: ew-resize;
 
     &-bar {
@@ -363,12 +407,14 @@ onBeforeUnmount(() => {
       transition: width 0.1s ease;
     }
 
-    &:hover .player-controls__tooltip {
-      opacity: 1;
-      pointer-events: auto;
+    &:hover {
+      .player-controls__tooltip,
+      .player-controls__chapter-overlay {
+        opacity: 1;
 
-      @media (hover: none) and (pointer: coarse) {
-        display: none;
+        @media (hover: none) and (pointer: coarse) {
+          display: none;
+        }
       }
     }
   }
@@ -381,25 +427,45 @@ onBeforeUnmount(() => {
 
     &:hover .player-controls__tooltip {
       opacity: 1;
-      pointer-events: auto;
     }
   }
 
-  &__tooltip {
+  &__chapter-marker {
     position: absolute;
-    top: -20px;
-    background: rgba($black, 0.85);
-    color: $white;
-    font-size: 0.75rem;
-    padding: 3px 6px;
-    border-radius: 4px;
-    white-space: nowrap;
-    pointer-events: none;
     z-index: 10;
-    transform: translateY(-5px);
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background-color: $white;
+  }
+
+  &__tooltip,
+  &__chapter-overlay {
+    position: absolute;
+    background: rgba($black, 0.8);
+    color: $white;
+    border-radius: 4px;
+    user-select: none;
+    z-index: 10;
     opacity: 0;
-    transition: opacity 0.2s ease;
+    white-space: nowrap;
+    transition: opacity 0.3s ease;
+  }
+
+  &__tooltip {
+    top: -20px;
+    font-size: 0.7rem;
+    padding: 3px 6px;
+
     pointer-events: none;
+  }
+
+  &__chapter-overlay {
+    top: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 10px;
+    font-size: 0.8rem;
   }
 }
 </style>

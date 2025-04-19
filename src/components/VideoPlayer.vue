@@ -2,7 +2,6 @@
   <div
     class="player"
     ref="videoWrapper"
-    @change="onResize"
     :style="isLoading || hasError ? { width: fixedWidth } : {}"
   >
     <video
@@ -28,6 +27,7 @@
       :progress-percent="progressPercent"
       :duration="duration"
       :current-time="currentTime"
+      :chapters="chapters"
       @toggle-play="togglePlay"
       @toggle-mute="toggleMute"
       @toggle-fullscreen="toggleFullscreen"
@@ -54,11 +54,9 @@ import PlayerOverlay from './PlayerOverlay.vue';
 import { withVideo } from '@/composables/useVideo';
 import { useFullscreen } from '@/composables/useFullscreen';
 import { useFixedWidth } from '@/composables/useFixedWidth';
+import type { Chapter } from '@/types';
 
-const videoSrc =
-  'https://meetyoo-code-challenge.s3.eu-central-1.amazonaws.com/live/S14JJ9Z6PKoO/bf1d4883-5305-4d65-a299-cbb654ef1ed9/video.webm'; //TODO: Move to constants
-
-  const video = useTemplateRef<HTMLVideoElement>('video');
+const video = useTemplateRef<HTMLVideoElement>('video');
 const videoWrapper = useTemplateRef<HTMLElement>('videoWrapper');
 const isLoading = ref(true);
 const hasError = ref(false);
@@ -70,8 +68,12 @@ const progressPercent = ref(0);
 const currentTime = ref(0);
 const duration = ref(0); // in seconds;
 
+const chapters = ref<Chapter[]>([]);
+
 const { isFullscreen, toggleFullscreen } = useFullscreen(videoWrapper);
 const { fixedWidth } = useFixedWidth();
+
+const videoSrc = computed(() => '/api/video.webm');
 
 const togglePlay = () => {
   withVideo(video, (v) => (v.paused ? v.play() : v.pause()));
@@ -88,12 +90,6 @@ watch(playbackRate, (newRate) => {
     v.playbackRate = newRate;
   });
 });
-
-const onResize = () => {
-  if (videoWrapper.value) {
-    console.log(videoWrapper.value.clientWidth);
-  }
-};
 
 const onLoadedData = () => {
   isLoading.value = false;
@@ -123,6 +119,7 @@ const updatePlayState = () => {
 
 const handleProgress = () => {
   withVideo(video, (v) => {
+    if (!v.duration || isNaN(v.duration)) return;
     currentTime.value = v.currentTime;
     progressPercent.value = (v.currentTime / v.duration) * 100;
   });
@@ -146,8 +143,40 @@ const onLoadedMetadata = () => {
   });
 };
 
+const fetchChapters = async () => {
+  try {
+    const res = await fetch('/api/full.xml');
+    if (!res.ok) {
+      throw new Error(`Failed to fetch chapters: ${res.statusText}`);
+    }
+
+    const text = await res.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, 'application/xml');
+
+    const parserError = xml.querySelector('parsererror');
+    if (parserError) {
+      throw new Error('Failed to parse XML: Invalid structure');
+    }
+
+    const chapterStream = xml.querySelector('EventStream[value="chapters"]');
+    const eventNodes = chapterStream?.querySelectorAll('Event') ?? [];
+
+    chapters.value = Array.from(eventNodes).map((node) => ({
+      title: node.getAttribute('title') ?? 'Untitled',
+      time: parseInt(node.getAttribute('presentationTime') ?? '0', 10) / 1000, // seconds
+    }));
+  } catch (error) {
+    console.error('[fetchChapters] Error:', error);
+    chapters.value = [];
+  }
+};
+
+
+
 onMounted(() => {
   video.value?.load();
+  fetchChapters();
 });
 
 onBeforeUnmount(() => {});
