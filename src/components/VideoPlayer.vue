@@ -1,16 +1,27 @@
 <template>
-  <div class="player" ref="videoWrapper">
+  <div
+    class="player"
+    ref="videoWrapper"
+    @change="onResize"
+    :style="isLoading || hasError ? { width: fixedWidth } : {}"
+  >
     <video
       preload="auto"
       class="player__video"
       ref="video"
       :src="videoSrc"
       @click="togglePlay"
-      @play="updateButton"
-      @pause="updateButton"
+      @play="updatePlayState"
+      @pause="updatePlayState"
       @timeupdate="handleProgress"
       @loadedmetadata="onLoadedMetadata"
+      @loadeddata="onLoadedData"
+      @error="onVideoError"
+      @canplay="onCanPlay"
     ></video>
+
+    <PlayerOverlay :is-loading="isLoading" :has-error="hasError" />
+
     <PlayerControls
       :is-playing="isPlaying"
       :is-fullscreen="isFullscreen"
@@ -30,25 +41,37 @@
 </template>
 
 <script setup lang="ts">
-import { ref, useTemplateRef, watch, onMounted, onBeforeUnmount } from 'vue';
+import {
+  ref,
+  useTemplateRef,
+  computed,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+} from 'vue';
 import PlayerControls from '@/components/PlayerControls.vue';
+import PlayerOverlay from './PlayerOverlay.vue';
 import { withVideo } from '@/composables/useVideo';
 import { useFullscreen } from '@/composables/useFullscreen';
+import { useFixedWidth } from '@/composables/useFixedWidth';
 
 const videoSrc =
   'https://meetyoo-code-challenge.s3.eu-central-1.amazonaws.com/live/S14JJ9Z6PKoO/bf1d4883-5305-4d65-a299-cbb654ef1ed9/video.webm'; //TODO: Move to constants
 
-const video = useTemplateRef<HTMLVideoElement>('video');
+  const video = useTemplateRef<HTMLVideoElement>('video');
 const videoWrapper = useTemplateRef<HTMLElement>('videoWrapper');
+const isLoading = ref(true);
+const hasError = ref(false);
 const isPlaying = ref(false);
 const isMuted = ref(false);
 const volume = ref(1);
 const playbackRate = ref(1);
 const progressPercent = ref(0);
 const currentTime = ref(0);
-const duration = ref(0); // in seconds
+const duration = ref(0); // in seconds;
 
 const { isFullscreen, toggleFullscreen } = useFullscreen(videoWrapper);
+const { fixedWidth } = useFixedWidth();
 
 const togglePlay = () => {
   withVideo(video, (v) => (v.paused ? v.play() : v.pause()));
@@ -66,6 +89,25 @@ watch(playbackRate, (newRate) => {
   });
 });
 
+const onResize = () => {
+  if (videoWrapper.value) {
+    console.log(videoWrapper.value.clientWidth);
+  }
+};
+
+const onLoadedData = () => {
+  isLoading.value = false;
+};
+
+const onCanPlay = () => {
+  isLoading.value = false;
+};
+
+const onVideoError = () => {
+  isLoading.value = false;
+  hasError.value = true;
+};
+
 const toggleMute = () => {
   withVideo(video, (v) => {
     v.muted = !v.muted;
@@ -73,7 +115,7 @@ const toggleMute = () => {
   });
 };
 
-const updateButton = () => {
+const updatePlayState = () => {
   withVideo(video, (v) => {
     isPlaying.value = !v.paused;
   });

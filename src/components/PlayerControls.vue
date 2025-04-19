@@ -83,17 +83,19 @@
 
     <button
       class="player-controls__button"
-      :title="skipButtonMeta.backward.title"
+      :title="skipButtonMeta.rewind.title"
       @click="$emit('skip', -10)"
     >
-      {{ `${skipButtonMeta.backward.icon} ${skipButtonMeta.backward.text}` }}
+      <span class="icon">{{ `${skipButtonMeta.rewind.icon}` }}</span>
+      <span class="text">{{ `${skipButtonMeta.rewind.text}` }}</span>
     </button>
     <button
       class="player-controls__button"
       :title="skipButtonMeta.forward.title"
       @click="$emit('skip', 25)"
     >
-      {{ `${skipButtonMeta.forward.text} ${skipButtonMeta.forward.icon}` }}
+      <span class="text">{{ `${skipButtonMeta.forward.text}` }}</span>
+      <span class="icon">{{ `${skipButtonMeta.forward.icon}` }}</span>
     </button>
     <button
       class="player-controls__button"
@@ -183,8 +185,8 @@ const volumeMeta = computed(() => ({
 }));
 
 const skipButtonMeta = computed(() => ({
-  forward: { title: 'Skip Forward', icon: '\u00BB', text: '25s' },
-  backward: { title: 'Skip Backward', icon: '\u00AB', text: '10s' },
+  forward: { title: 'Skip Forward', icon: '\u21BB', text: '25s' },
+  rewind: { title: 'Skip Rewind', icon: '\u21BA', text: '10s' },
 }));
 
 watch(
@@ -312,16 +314,30 @@ onBeforeUnmount(() => {
   }
 
   &__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
     background: none;
     border: 0;
-    line-height: 1;
     color: $white;
     text-align: center;
-    outline: 0;
-    padding: 0;
     cursor: pointer;
     max-width: 50px;
     height: 30px;
+    font-size: 0.95rem;
+    padding: 0;
+
+    .icon {
+      font-size: 1.3rem;
+      line-height: 1;
+      transform: translateY(-2px);
+    }
+
+    .text {
+      font-size: 0.9rem;
+      line-height: 1;
+    }
 
     &--mute {
       margin: 0 10px;
