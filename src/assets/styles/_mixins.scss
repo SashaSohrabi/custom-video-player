@@ -30,6 +30,12 @@
   }
 }
 
+@mixin hover-only {
+  @media (hover: hover) and (pointer: fine) {
+    @content;
+  }
+}
+
 @mixin touch-only {
   @media (hover: none) and (pointer: coarse) {
     @content;

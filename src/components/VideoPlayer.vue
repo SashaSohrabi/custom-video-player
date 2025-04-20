@@ -8,6 +8,10 @@
       preload="auto"
       class="player__video"
       ref="video"
+      tabindex="0"
+      aria-label="Video player. Use keyboard arrows for playback control"
+      @waiting="isLoading = true"
+      @playing="isLoading = false"
       :src="videoSrc"
       @click="togglePlay"
       @play="updatePlayState"
@@ -17,6 +21,17 @@
       @loadeddata="onLoadedData"
       @error="onVideoError"
       @canplay="onCanPlay"
+      @keydown.space.prevent="togglePlay"
+      @keydown.k.prevent="togglePlay"
+      @keydown.right="skip(25)"
+      @keydown.left="skip(-10)"
+      @keydown.up.prevent="increaseVolume"
+      @keydown.down.prevent="decreaseVolume"
+      @keydown.m="toggleMute"
+      @keydown.f="toggleFullscreen"
+      @keydown.c="toggleCaptions"
+      @keydown.[="decreaseRate"
+      @keydown.]="increaseRate"
     ></video>
 
     <PlayerOverlay :is-loading="isLoading" :has-error="hasError" />
@@ -156,6 +171,22 @@ const onLoadedMetadata = () => {
   });
 };
 
+const increaseVolume = () => {
+  volume.value = Math.min(volume.value + 0.05, 1);
+};
+
+const decreaseVolume = () => {
+  volume.value = Math.max(volume.value - 0.05, 0);
+};
+
+const increaseRate = () => {
+  playbackRate.value = Math.min(playbackRate.value + 0.1, 2);
+};
+
+const decreaseRate = () => {
+  playbackRate.value = Math.max(playbackRate.value - 0.1, 0.5);
+};
+
 const fetchChapters = async () => {
   try {
     const res = await fetch('/api/full.xml');
@@ -227,7 +258,8 @@ onMounted(async () => {
     max-height: 100%;
   }
 
-  &:hover {
+  &:hover,
+  &:focus-within {
     .player-controls {
       transform: translateY(0);
     }

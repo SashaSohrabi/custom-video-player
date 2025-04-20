@@ -1,7 +1,17 @@
 <template>
-  <div v-if="isLoading || hasError" class="player-overlay">
-    <div v-if="isLoading && !hasError" class="player-overlay__spinner"></div>
-    <div v-else-if="hasError" class="player-overlay__error">
+  <div
+    v-if="isLoading || hasError"
+    class="player-overlay"
+    role="status"
+    aria-live="polite"
+  >
+    <div
+      v-if="isLoading && !hasError"
+      class="player-overlay__spinner"
+      aria-hidden="true"
+    ></div>
+    <span v-if="isLoading && !hasError" class="sr-only">Loading video</span>
+    <div v-else-if="hasError" class="player-overlay__error" role="alert">
       ⚠️ Failed to load video
     </div>
   </div>
@@ -22,7 +32,6 @@ defineProps<{
   z-index: 10;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -31,7 +40,7 @@ defineProps<{
   &__spinner {
     width: 50px;
     height: 50px;
-    border: 4px solid rgba(255, 255, 255, 0.3);
+    border: 4px solid rgba($white, 0.5);
     border-top-color: $primary-green;
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -42,6 +51,17 @@ defineProps<{
     font-size: 1.5rem;
     text-align: center;
   }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @keyframes spin {

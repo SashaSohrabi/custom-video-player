@@ -1,5 +1,5 @@
 <template>
-  <div class="player-controls">
+  <div class="player-controls" role="region" aria-label="Video player controls">
     <div
       class="player-controls__progress"
       ref="progress"
@@ -12,6 +12,7 @@
       <div
         ref="tooltip"
         v-if="hoveredTime"
+        aria-hidden="true"
         class="player-controls__tooltip"
         :style="{ left: tooltipLeft }"
       >
@@ -35,6 +36,7 @@
       <button
         class="player-controls__button"
         :title="playButtonState.title"
+        :aria-label="playButtonState.title"
         @click="$emit('toggle-play')"
       >
         {{ playButtonState.icon }}
@@ -47,7 +49,9 @@
     <button
       class="player-controls__button player-controls__button--mute"
       @click="$emit('toggle-mute')"
+      :aria-pressed="props.isMuted"
       :title="muteButtonState.title"
+      :aria-label="muteButtonState.title"
     >
       {{ muteButtonState.icon }}
     </button>
@@ -63,6 +67,11 @@
         min="0"
         max="1"
         step="0.05"
+        role="slider"
+        aria-label="Volume"
+        aria-valuemin="0"
+        aria-valuemax="1"
+        :aria-valuenow="props.volume"
         :value="props.volume"
         :title="volumeMeta.title"
         @input="
@@ -72,7 +81,7 @@
           )
         "
       />
-      <div class="player-controls__tooltip">
+      <div class="player-controls__tooltip" aria-hidden="true">
         {{ volumeMeta.label }}
       </div>
     </div>
@@ -84,12 +93,16 @@
       <button
         class="player-controls__button player-controls__button--chapter-nav"
         :title="chapterNavButtons.prev.title"
+        :aria-label="chapterNavButtons.prev.title"
         @click="seekToPreviousChapter"
       >
         {{ chapterNavButtons.prev.icon }}
       </button>
       <div
         class="player-controls__chapter-title"
+        tabindex="0"
+        aria-readonly="true"
+        :aria-label="currentChapter?.title"
         :title="currentChapter?.title"
       >
         {{ currentChapter?.title }}
@@ -97,6 +110,7 @@
       <button
         class="player-controls__button player-controls__button--chapter-nav"
         :title="chapterNavButtons.next.title"
+        :aria-label="chapterNavButtons.next.title"
         @click="seekToNextChapter"
       >
         {{ chapterNavButtons.next.icon }}
@@ -113,6 +127,11 @@
         min="0.5"
         max="2"
         step="0.1"
+        role="slider"
+        aria-label="Playback rate"
+        aria-valuemin="0.5"
+        aria-valuemax="2"
+        :aria-valuenow="props.playbackRate"
         :value="props.playbackRate"
         :title="playbackRateMeta.title"
         @input="
@@ -122,7 +141,7 @@
           )
         "
       />
-      <div class="player-controls__tooltip">
+      <div class="player-controls__tooltip" aria-hidden="true">
         {{ playbackRateMeta.label }}
       </div>
     </div>
@@ -130,22 +149,30 @@
     <button
       class="player-controls__button player-controls__button--skip"
       :title="skipButtonMeta.rewind.title"
+      :aria-label="skipButtonMeta.rewind.title"
       @click="$emit('skip', -10)"
     >
-      <span class="icon">{{ `${skipButtonMeta.rewind.icon}` }}</span>
+      <span class="icon" aria-hidden="true">
+        {{ `${skipButtonMeta.rewind.icon}` }}
+      </span>
       <span class="text">{{ `${skipButtonMeta.rewind.text}` }}</span>
     </button>
     <button
       class="player-controls__button player-controls__button--skip"
       :title="skipButtonMeta.forward.title"
+      :aria-label="skipButtonMeta.forward.title"
       @click="$emit('skip', 25)"
     >
       <span class="text">{{ `${skipButtonMeta.forward.text}` }}</span>
-      <span class="icon">{{ `${skipButtonMeta.forward.icon}` }}</span>
+      <span class="icon" aria-hidden="true">
+        {{ `${skipButtonMeta.forward.icon}` }}
+      </span>
     </button>
     <button
       class="player-controls__button player-controls__button--fullscreen"
       :title="fullscreenButtonState.title"
+      :aria-label="fullscreenButtonState.title"
+      :aria-pressed="props.isFullscreen"
       @click="$emit('toggle-fullscreen')"
     >
       {{ fullscreenButtonState.icon }}
@@ -153,6 +180,8 @@
     <button
       class="player-controls__button player-controls__button--cc"
       :title="closedCaptionsMeta.title"
+      :aria-label="closedCaptionsMeta.title"
+      :aria-pressed="props.captionsEnabled"
       :class="{ 'is-active': props.captionsEnabled }"
       @click="$emit('toggle-captions')"
     >
@@ -163,6 +192,7 @@
     <div
       v-if="captionsEnabled && currentSubtitle"
       class="player-controls__subtitle"
+      aria-hidden="true"
     >
       {{ currentSubtitle.text }}
     </div>
@@ -430,7 +460,7 @@ onBeforeUnmount(() => {
   background: rgba($black, 0.3);
   font-size: clamp(1rem, 2vw, 1.6rem);
 
-  @media (hover: hover) and (pointer: fine) {
+  @include hover-only {
     transform: translateY(calc(100% - 5px));
   }
 
@@ -469,7 +499,6 @@ onBeforeUnmount(() => {
     gap: 4px;
     background: none;
     border: 0;
-    border-radius: 3px;
     color: $white;
     text-align: center;
     cursor: pointer;
@@ -576,7 +605,7 @@ onBeforeUnmount(() => {
     }
   }
 
-  &__slider:hover + &__tooltip {
+  :is(&__slider:hover, &__slider:focus) + &__tooltip {
     opacity: 1;
     visibility: visible;
   }
