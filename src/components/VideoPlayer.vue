@@ -59,7 +59,7 @@ const isLoading = ref(true);
 const hasError = ref(false);
 const isPlaying = ref(false);
 const isMuted = ref(false);
-const captionsEnabled = ref(true);
+const captionsEnabled = ref(false);
 const volume = ref(1);
 const playbackRate = ref(1);
 const progressPercent = ref(0);
@@ -211,15 +211,20 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .player {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
+  height: 100%;
   background: rgba($black, 0.95);
-  box-shadow: 0 0 20px rgba($black, 0.2);
-  aspect-ratio: 16 / 9;
+  box-shadow: 0 0 2rem rgba($black, 0.2);
   position: relative;
   overflow: hidden;
 
   &__video {
     width: 100%;
+    height: auto;
+    max-height: 100%;
   }
 
   &:hover {

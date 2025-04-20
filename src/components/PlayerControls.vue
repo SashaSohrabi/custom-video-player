@@ -31,17 +31,30 @@
         :style="{ width: `${progressPercent}%` }"
       ></div>
     </div>
-    <button
-      class="player-controls__button"
-      :title="playButtonState.title"
-      @click="$emit('toggle-play')"
-    >
-      {{ playButtonState.icon }}
-    </button>
-    <div class="player-controls__time">
-      {{ timeDisplay }}
+    <div class="player-controls__group">
+      <button
+        class="player-controls__button"
+        :title="playButtonState.title"
+        @click="$emit('toggle-play')"
+      >
+        {{ playButtonState.icon }}
+      </button>
+      <div class="player-controls__time">
+        {{ timeDisplay }}
+      </div>
     </div>
-    <div class="player-controls__slider-wrapper">
+
+    <button
+      class="player-controls__button player-controls__button--mute"
+      @click="$emit('toggle-mute')"
+      :title="muteButtonState.title"
+    >
+      {{ muteButtonState.icon }}
+    </button>
+
+    <div
+      class="player-controls__slider-wrapper player-controls__slider-wrapper--volume"
+    >
       <input
         ref="volume"
         type="range"
@@ -63,14 +76,36 @@
         {{ volumeMeta.label }}
       </div>
     </div>
-    <button
-      class="player-controls__button player-controls__button--mute"
-      @click="$emit('toggle-mute')"
-      :title="muteButtonState.title"
+
+    <div
+      class="player-controls__chapter-nav"
+      :class="{ 'is-fullscreen': isFullscreen }"
     >
-      {{ muteButtonState.icon }}
-    </button>
-    <div class="player-controls__slider-wrapper">
+      <button
+        class="player-controls__button player-controls__button--chapter-nav"
+        :title="chapterNavButtons.prev.title"
+        @click="seekToPreviousChapter"
+      >
+        {{ chapterNavButtons.prev.icon }}
+      </button>
+      <div
+        class="player-controls__chapter-title"
+        :title="currentChapter?.title"
+      >
+        {{ currentChapter?.title }}
+      </div>
+      <button
+        class="player-controls__button player-controls__button--chapter-nav"
+        :title="chapterNavButtons.next.title"
+        @click="seekToNextChapter"
+      >
+        {{ chapterNavButtons.next.icon }}
+      </button>
+    </div>
+
+    <div
+      class="player-controls__slider-wrapper player-controls__slider-wrapper--play-back-rate"
+    >
       <input
         type="range"
         name="playbackRate"
@@ -93,7 +128,7 @@
     </div>
 
     <button
-      class="player-controls__button"
+      class="player-controls__button player-controls__button--skip"
       :title="skipButtonMeta.rewind.title"
       @click="$emit('skip', -10)"
     >
@@ -101,7 +136,7 @@
       <span class="text">{{ `${skipButtonMeta.rewind.text}` }}</span>
     </button>
     <button
-      class="player-controls__button"
+      class="player-controls__button player-controls__button--skip"
       :title="skipButtonMeta.forward.title"
       @click="$emit('skip', 25)"
     >
@@ -109,7 +144,7 @@
       <span class="icon">{{ `${skipButtonMeta.forward.icon}` }}</span>
     </button>
     <button
-      class="player-controls__button"
+      class="player-controls__button player-controls__button--fullscreen"
       :title="fullscreenButtonState.title"
       @click="$emit('toggle-fullscreen')"
     >
@@ -185,6 +220,7 @@ const currentHoveredChapter = ref<Chapter | null>(null);
 
 const volumePercent = computed(() => `${Math.round(props.volume * 100)}%`);
 const playbackRateValue = computed(() => props.playbackRate.toFixed(1));
+const currentChapter = computed(() => getChapterAt(props.currentTime));
 
 const timeDisplay = computed(() => {
   return `${formatTime(props.currentTime)} / ${formatTime(props.duration)}`;
@@ -226,6 +262,17 @@ const closedCaptionsMeta = computed(() => ({
 const skipButtonMeta = computed(() => ({
   forward: { title: 'Skip Forward', icon: '\u21BB', text: '25s' },
   rewind: { title: 'Skip Rewind', icon: '\u21BA', text: '10s' },
+}));
+
+const chapterNavButtons = computed(() => ({
+  next: {
+    title: 'Next Chapter',
+    icon: '\u23ED',
+  },
+  prev: {
+    title: 'Previous Chapter',
+    icon: '\u23EE',
+  },
 }));
 
 const chapterHighlightStyle = computed(() => {
@@ -337,14 +384,28 @@ const getScrubData = (e: PointerEvent) => {
   return { x, percent, scrubTime };
 };
 
-function getChapterAt(time: number): Chapter | undefined {
+const getChapterAt = (time: number): Chapter | undefined => {
   return props.chapters.find((ch, i) => {
     const next = props.chapters[i + 1];
     const end = next ? next.time : props.duration;
     const isCurrentChapter = time >= ch.time && time < end;
     return isCurrentChapter;
   });
-}
+};
+
+const seekToPreviousChapter = () => {
+  const current = props.currentTime;
+  const previous = [...props.chapters]
+    .reverse()
+    .find((ch) => ch.time < current);
+  if (previous) emit('seek', previous.time);
+};
+
+const seekToNextChapter = () => {
+  const current = props.currentTime;
+  const next = props.chapters.find((ch) => ch.time > current);
+  if (next) emit('seek', next.time);
+};
 
 onMounted(() => {
   window.addEventListener('pointerup', onPointerUp);
@@ -367,6 +428,7 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   transition: all 0.3s;
   background: rgba($black, 0.3);
+  font-size: clamp(1rem, 2vw, 1.6rem);
 
   @media (hover: hover) and (pointer: fine) {
     transform: translateY(calc(100% - 5px));
@@ -376,11 +438,28 @@ onBeforeUnmount(() => {
     flex: 1;
   }
 
+  &__group {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 0.5rem;
+  }
+
   &__time {
     color: $white;
-    font-size: 0.75rem;
-    margin: 0 10px;
+    font-size: 0.55rem;
     align-self: center;
+    text-align: center;
+    display: none;
+    flex: 0 1 auto;
+
+    @include respond-to('xs') {
+      display: block;
+    }
+
+    @include respond-to('sm') {
+      font-size: 0.7rem;
+    }
   }
 
   &__button {
@@ -390,13 +469,13 @@ onBeforeUnmount(() => {
     gap: 4px;
     background: none;
     border: 0;
+    border-radius: 3px;
     color: $white;
     text-align: center;
     cursor: pointer;
-    max-width: 50px;
-    height: 30px;
-    font-size: 0.95rem;
-    padding: 0;
+    padding: 0.45em 0.8rem;
+    max-width: 4rem;
+    font-size: 0.75rem;
 
     .icon {
       font-size: 1.3rem;
@@ -404,32 +483,49 @@ onBeforeUnmount(() => {
       transform: translateY(-2px);
     }
 
-    .text {
-      font-size: 0.9rem;
-      line-height: 1;
+    &--mute,
+    &--fullscreen,
+    &--skip {
+      max-width: 3rem;
     }
 
     &--mute {
-      margin: 0 10px;
+      display: none;
+
+      @include respond-to('sm-md') {
+        display: inline-block;
+      }
     }
 
-    &--cc {
-      font-weight: bold;
-      text-transform: uppercase;
-      font-size: 0.85rem;
-      padding: 4px 8px;
-      border-radius: 3px;
+    &--skip {
+      display: none;
+
+      @include respond-to('sm-md') {
+        display: flex;
+      }
+    }
+
+    &--cc,
+    &--chapter-nav {
       background: rgba($white, 0.2);
-      color: white;
       transition: background 0.2s ease;
 
       &:hover {
         background: rgba($primary-green, 0.3);
       }
+    }
+
+    &--cc {
+      font-weight: bold;
+      text-transform: uppercase;
 
       &.is-active {
         background: $primary-green;
       }
+    }
+
+    &--chapter-nav {
+      min-width: 2.5rem;
     }
   }
 
@@ -437,7 +533,7 @@ onBeforeUnmount(() => {
     position: relative;
     display: flex;
     flex-basis: 100%;
-    height: 12px;
+    height: 1rem;
     transition: height 0.3s;
     background: rgba($black, 0.2);
     cursor: ew-resize;
@@ -458,7 +554,7 @@ onBeforeUnmount(() => {
         opacity: 1;
         visibility: visible;
 
-        @media (hover: none) and (pointer: coarse) {
+        @include touch-only {
           display: none;
         }
       }
@@ -470,6 +566,14 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
+
+    &--play-back-rate {
+      display: none;
+
+      @include respond-to('md') {
+        display: flex;
+      }
+    }
   }
 
   &__slider:hover + &__tooltip {
@@ -484,6 +588,33 @@ onBeforeUnmount(() => {
     width: 4px;
     height: 100%;
     background-color: $white;
+  }
+
+  &__chapter-nav {
+    display: flex;
+    max-width: 14rem;
+    justify-content: center;
+    gap: 4px;
+    margin: 0 0.8rem;
+    flex: 0 1 auto;
+
+    @include respond-to('sm') {
+      max-width: 16rem;
+    }
+
+    &.is-fullscreen {
+      max-width: none;
+    }
+  }
+
+  &__chapter-title {
+    align-self: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    color: $white;
+    font-size: 0.85rem;
   }
 
   &__tooltip,

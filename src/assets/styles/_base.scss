@@ -1,7 +1,21 @@
 @use '_variables' as *;
+@use '_mixins' as *;
 
 html {
   box-sizing: border-box;
+  font-size: 62.5%; // 10px
+
+  @include respond-to('sm') {
+    font-size: 68.75%; // 11px
+  }
+
+  @include respond-to('sm-md') {
+    font-size: 75%; // 12px
+  }
+
+  @include respond-to('md') {
+    font-size: 87.5%; // 14px
+  }
 }
 
 *,
@@ -24,7 +38,6 @@ body {
     $sky-blue 60%,
     $light-gray 95%
   );
-
   background-size: cover;
 }
 
