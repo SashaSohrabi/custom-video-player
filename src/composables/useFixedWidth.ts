@@ -1,11 +1,10 @@
 import { ref } from 'vue';
 
-export const useFixedWidth = () => {
+export const useFixedWidth = (maxWrapperWidth = 800, padding = 25) => {
   const fixedWidth = ref('100%');
 
   const calculateWidth = () => {
-    const maxWrapperWidth = 800;
-    const horizontalPadding = 25 * 2;
+    const horizontalPadding = padding * 2;
     const screenWidth = window.innerWidth;
     const availableWidth =
       Math.min(screenWidth, maxWrapperWidth) - horizontalPadding;
