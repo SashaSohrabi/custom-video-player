@@ -24,13 +24,16 @@
     <PlayerControls
       :is-playing="isPlaying"
       :is-fullscreen="isFullscreen"
+      :captions-enabled="captionsEnabled"
       :progress-percent="progressPercent"
       :duration="duration"
       :current-time="currentTime"
+      :current-subtitle="currentSubtitle"
       :chapters="chapters"
       @toggle-play="togglePlay"
       @toggle-mute="toggleMute"
       @toggle-fullscreen="toggleFullscreen"
+      @toggle-captions="toggleCaptions"
       @seek="seekTo"
       @skip="skip"
       v-model:volume="volume"
@@ -41,20 +44,14 @@
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  useTemplateRef,
-  computed,
-  watch,
-  onMounted,
-  onBeforeUnmount,
-} from 'vue';
+import { ref, useTemplateRef, computed, watch, onMounted } from 'vue';
 import PlayerControls from '@/components/PlayerControls.vue';
 import PlayerOverlay from './PlayerOverlay.vue';
 import { withVideo } from '@/composables/useVideo';
 import { useFullscreen } from '@/composables/useFullscreen';
 import { useFixedWidth } from '@/composables/useFixedWidth';
-import type { Chapter } from '@/types';
+import { parseVTT } from '@/utilities/subtitleUtils';
+import type { Chapter, Subtitle } from '@/types';
 
 const video = useTemplateRef<HTMLVideoElement>('video');
 const videoWrapper = useTemplateRef<HTMLElement>('videoWrapper');
@@ -62,6 +59,7 @@ const isLoading = ref(true);
 const hasError = ref(false);
 const isPlaying = ref(false);
 const isMuted = ref(false);
+const captionsEnabled = ref(true);
 const volume = ref(1);
 const playbackRate = ref(1);
 const progressPercent = ref(0);
@@ -69,6 +67,8 @@ const currentTime = ref(0);
 const duration = ref(0); // in seconds;
 
 const chapters = ref<Chapter[]>([]);
+const subtitles = ref<Subtitle[]>([]);
+const currentSubtitle = ref<Subtitle | null>(null);
 
 const { isFullscreen, toggleFullscreen } = useFullscreen(videoWrapper);
 const { fixedWidth } = useFixedWidth();
@@ -111,10 +111,22 @@ const toggleMute = () => {
   });
 };
 
+const toggleCaptions = () => {
+  captionsEnabled.value = !captionsEnabled.value;
+};
+
 const updatePlayState = () => {
   withVideo(video, (v) => {
     isPlaying.value = !v.paused;
   });
+};
+
+const updateSubtitle = () => {
+  if (!subtitles.value.length) return;
+  currentSubtitle.value =
+    subtitles.value.find(
+      (sub) => currentTime.value >= sub.start && currentTime.value <= sub.end
+    ) || null;
 };
 
 const handleProgress = () => {
@@ -122,6 +134,7 @@ const handleProgress = () => {
     if (!v.duration || isNaN(v.duration)) return;
     currentTime.value = v.currentTime;
     progressPercent.value = (v.currentTime / v.duration) * 100;
+    updateSubtitle();
   });
 };
 
@@ -172,14 +185,28 @@ const fetchChapters = async () => {
   }
 };
 
+const fetchSubtitles = async () => {
+  try {
+    const res = await fetch('/api/transcript.vtt');
+    if (!res.ok) {
+      throw new Error(`Failed to fetch subtitles: ${res.statusText}`);
+    }
 
+    const text = await res.text();
+    subtitles.value = parseVTT(text);
+  } catch (error) {
+    console.error('[fetchSubtitles] Error:', error);
+    subtitles.value = [];
+  }
+};
 
-onMounted(() => {
-  video.value?.load();
-  fetchChapters();
+onMounted(async () => {
+  try {
+    await Promise.all([fetchSubtitles(), fetchChapters()]);
+  } catch (error) {
+    console.error('Failed to fetch subtitles or chapters:', error);
+  }
 });
-
-onBeforeUnmount(() => {});
 </script>
 
 <style scoped lang="scss">

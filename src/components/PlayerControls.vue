@@ -5,8 +5,9 @@
       ref="progress"
       @pointerdown="onPointerDown"
       @pointermove="throttledPointerMove"
-      @mouseleave="onPointerLeave"
-      :style="hoveredTime ? chapterHighlightStyle : {}"
+      @pointerleave="onPointerLeave"
+      @pointerenter="onPointerEnter"
+      :style="chapterHighlightStyle"
     >
       <div
         ref="tooltip"
@@ -114,6 +115,22 @@
     >
       {{ fullscreenButtonState.icon }}
     </button>
+    <button
+      class="player-controls__button player-controls__button--cc"
+      :title="closedCaptionsMeta.title"
+      :class="{ 'is-active': props.captionsEnabled }"
+      @click="$emit('toggle-captions')"
+    >
+      <span class="player-controls__cc-text">{{
+        closedCaptionsMeta.label
+      }}</span>
+    </button>
+    <div
+      v-if="captionsEnabled && currentSubtitle"
+      class="player-controls__subtitle"
+    >
+      {{ currentSubtitle.text }}
+    </div>
   </div>
 </template>
 
@@ -128,14 +145,16 @@ import {
 } from 'vue';
 import { throttle } from 'lodash-es';
 import { formatTime } from '@/utilities/timeUtils';
-import type { Chapter } from '@/types';
+import type { Chapter, Subtitle } from '@/types';
 
 const props = defineProps<{
   progressPercent: number;
   currentTime: number;
+  currentSubtitle: Subtitle | null;
   isPlaying: boolean;
   isMuted: boolean;
   isFullscreen: boolean;
+  captionsEnabled: boolean;
   duration: number;
   volume: number;
   playbackRate: number;
@@ -146,6 +165,7 @@ const emit = defineEmits<{
   (e: 'toggle-play'): void;
   (e: 'toggle-mute'): void;
   (e: 'toggle-fullscreen'): void;
+  (e: 'toggle-captions'): void;
   (e: 'seek', time: number): void;
   (e: 'skip', time: number): void;
   (e: 'update:volume', value: number): void;
@@ -159,7 +179,8 @@ const volumeRef = useTemplateRef<HTMLInputElement>('volume');
 
 const pointerdown = ref(false);
 const tooltipLeft = ref('0px');
-const hoveredTime = ref<number | null>(null);
+const hoveredTime = ref(0);
+const isHovered = ref(false);
 const currentHoveredChapter = ref<Chapter | null>(null);
 
 const volumePercent = computed(() => `${Math.round(props.volume * 100)}%`);
@@ -197,13 +218,19 @@ const volumeMeta = computed(() => ({
   label: `\u{1F50A} ${volumePercent.value}`,
 }));
 
+const closedCaptionsMeta = computed(() => ({
+  title: 'Subtitles/closed captions (c)',
+  label: 'cc',
+}));
+
 const skipButtonMeta = computed(() => ({
   forward: { title: 'Skip Forward', icon: '\u21BB', text: '25s' },
   rewind: { title: 'Skip Rewind', icon: '\u21BA', text: '10s' },
 }));
 
 const chapterHighlightStyle = computed(() => {
-  if (!currentHoveredChapter.value || !props.duration) return {};
+  if (!isHovered.value || !props.duration || !currentHoveredChapter.value)
+    return {};
 
   const current = currentHoveredChapter.value;
   const nextIndex =
@@ -251,13 +278,11 @@ const onPointerDown = (e: PointerEvent) => {
   seekToPointer(e);
 };
 
-const onPointerUp = () => {
-  pointerdown.value = false;
-};
+const onPointerUp = () => (pointerdown.value = false);
 
-const onPointerLeave = () => {
-  hoveredTime.value = null;
-};
+const onPointerEnter = () => (isHovered.value = true);
+
+const onPointerLeave = () => (isHovered.value = false);
 
 const onPointerMove = (e: PointerEvent) => {
   const data = getScrubData(e);
@@ -278,6 +303,7 @@ const onPointerCancel = () => {
 const throttledPointerMove = throttle(onPointerMove, 20);
 
 const seekToPointer = (e: PointerEvent) => {
+  isHovered.value = true;
   const data = getScrubData(e);
   if (data) {
     emit('seek', data.scrubTime);
@@ -386,6 +412,25 @@ onBeforeUnmount(() => {
     &--mute {
       margin: 0 10px;
     }
+
+    &--cc {
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      padding: 4px 8px;
+      border-radius: 3px;
+      background: rgba($white, 0.2);
+      color: white;
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: rgba($primary-green, 0.3);
+      }
+
+      &.is-active {
+        background: $primary-green;
+      }
+    }
   }
 
   &__progress {
@@ -411,6 +456,7 @@ onBeforeUnmount(() => {
       .player-controls__tooltip,
       .player-controls__chapter-overlay {
         opacity: 1;
+        visibility: visible;
 
         @media (hover: none) and (pointer: coarse) {
           display: none;
@@ -424,10 +470,11 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
+  }
 
-    &:hover .player-controls__tooltip {
-      opacity: 1;
-    }
+  &__slider:hover + &__tooltip {
+    opacity: 1;
+    visibility: visible;
   }
 
   &__chapter-marker {
@@ -448,6 +495,7 @@ onBeforeUnmount(() => {
     user-select: none;
     z-index: 10;
     opacity: 0;
+    visibility: hidden;
     white-space: nowrap;
     transition: opacity 0.3s ease;
   }
@@ -457,6 +505,17 @@ onBeforeUnmount(() => {
     font-size: 0.7rem;
     padding: 3px 6px;
 
+    pointer-events: none;
+  }
+
+  &__subtitle {
+    position: absolute;
+    bottom: 60px;
+    width: 100%;
+    text-align: center;
+    font-size: 1rem;
+    color: white;
+    text-shadow: 1px 1px 4px rgba($black, 0.8);
     pointer-events: none;
   }
 

@@ -1,4 +1,4 @@
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref } from 'vue';
 
 export const useFixedWidth = () => {
   const fixedWidth = ref('100%');
