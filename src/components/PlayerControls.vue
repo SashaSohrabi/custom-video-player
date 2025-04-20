@@ -562,7 +562,7 @@ onBeforeUnmount(() => {
     position: relative;
     display: flex;
     flex-basis: 100%;
-    height: 1rem;
+    height: 0.8rem;
     transition: height 0.3s;
     background: rgba($black, 0.2);
     cursor: ew-resize;
