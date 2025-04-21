@@ -67,6 +67,7 @@ import { useFullscreen } from '@/composables/useFullscreen';
 import { useFixedWidth } from '@/composables/useFixedWidth';
 import { parseVTT } from '@/utilities/subtitleUtils';
 import type { Chapter, Subtitle } from '@/types';
+import { API_URLS } from '@/constants/api';
 
 const video = useTemplateRef<HTMLVideoElement>('video');
 const videoWrapper = useTemplateRef<HTMLElement>('videoWrapper');
@@ -88,7 +89,7 @@ const currentSubtitle = ref<Subtitle | null>(null);
 const { isFullscreen, toggleFullscreen } = useFullscreen(videoWrapper);
 const { fixedWidth } = useFixedWidth();
 
-const videoSrc = computed(() => '/api/video.webm');
+const videoSrc = computed(() => API_URLS.VIDEO);
 
 const togglePlay = () => {
   withVideo(video, (v) => (v.paused ? v.play() : v.pause()));
@@ -200,7 +201,7 @@ const decreaseRate = () => {
 
 const fetchChapters = async () => {
   try {
-    const res = await fetch('/api/full.xml');
+    const res = await fetch(API_URLS.CHAPTERS);
     if (!res.ok) {
       throw new Error(`Failed to fetch chapters: ${res.statusText}`);
     }
@@ -229,7 +230,7 @@ const fetchChapters = async () => {
 
 const fetchSubtitles = async () => {
   try {
-    const res = await fetch('/api/transcript.vtt');
+    const res = await fetch(API_URLS.TRANSCRIPT);
     if (!res.ok) {
       throw new Error(`Failed to fetch subtitles: ${res.statusText}`);
     }
