@@ -54,3 +54,12 @@ npm run build
 ```sh
 npm run preview
 ```
+
+## Environment Variables
+
+Create a .env file in the project root with the following content:
+
+```sh
+VITE_VIDEO_BASE=https://meetyoo-code-challenge.s3.eu-central-1.amazonaws.com
+VITE_VIDEO_PATH=/live/S14JJ9Z6PKoO/bf1d4883-5305-4d65-a299-cbb654ef1ed9
+```
