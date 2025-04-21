@@ -1,4 +1,4 @@
-# 🎥 Custom Video Player
+# Custom Video Player
 
 A responsive and accessible video player built with **Vue 3**, **Vite**, and **TypeScript**. Features include custom chapter navigation, playback controls, keyboard accessibility, and adaptive UI using SCSS.
 
@@ -7,18 +7,18 @@ A responsive and accessible video player built with **Vue 3**, **Vite**, and **T
 
 ---
 
-## ✨ Features
+## Features
 
-- 🎮 Play / Pause / Replay functionality  
-- 🔊 Volume and mute controls with tooltip feedback  
-- 🔁 Chapter navigation (Next / Previous)  
-- ⏩ Skip forward/backward by seconds  
-- 🎚️ Playback speed adjustment  
-- 🌐 Fullscreen toggle  
-- 💬 Closed captions support  
-- ⚙️ Accessibility: ARIA roles, keyboard navigation, screen-reader friendly  
-- 🎨 Styled with SCSS and responsive media queries  
-- 📦 Built with `lucide-vue-next` for icon consistency
+-  Play / Pause / Replay functionality  
+- Volume and mute controls with tooltip feedback  
+- Chapter navigation (Next / Previous)  
+- Skip forward/backward by seconds  
+- Playback speed adjustment  
+- Fullscreen toggle  
+- Closed captions support  
+- Accessibility: ARIA roles, keyboard navigation, screen-reader friendly  
+- Styled with SCSS and responsive media queries  
+- Built with `lucide-vue-next` for icon consistency
 
 ---
 
@@ -33,23 +33,24 @@ A responsive and accessible video player built with **Vue 3**, **Vite**, and **T
 
 ## Setup
 
-```bash
+```sh
 npm install
-
+```
 
 ## Development
 
-```bash
+```sh
 npm run dev
-
+```
 
 ## Build
 
-```bash
+```sh
 npm run build
-
+```
 
 ## Preview Production
 
-```bash
+```sh
 npm run preview
+```
