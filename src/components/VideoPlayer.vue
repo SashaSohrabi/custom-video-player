@@ -10,8 +10,6 @@
       ref="video"
       tabindex="0"
       aria-label="Video player. Use keyboard arrows for playback control"
-      @waiting="isLoading = true"
-      @playing="isLoading = false"
       :src="videoSrc"
       @click="togglePlay"
       @play="updatePlayState"
@@ -21,6 +19,7 @@
       @loadeddata="onLoadedData"
       @error="onVideoError"
       @canplay="onCanPlay"
+      @waiting="onWaiting"
       @keydown.space.prevent="togglePlay"
       @keydown.k.prevent="togglePlay"
       @keydown.right="skip(25)"
@@ -46,6 +45,7 @@
       :current-subtitle="currentSubtitle"
       :chapters="chapters"
       @toggle-play="togglePlay"
+      @replay="replay"
       @toggle-mute="toggleMute"
       @toggle-fullscreen="toggleFullscreen"
       @toggle-captions="toggleCaptions"
@@ -94,6 +94,13 @@ const togglePlay = () => {
   withVideo(video, (v) => (v.paused ? v.play() : v.pause()));
 };
 
+const replay = () => {
+  withVideo(video, (v) => {
+    v.currentTime = 0;
+    v.play();
+  });
+};
+
 watch(volume, (newVolume) => {
   withVideo(video, (v) => {
     v.volume = newVolume;
@@ -112,6 +119,10 @@ const onLoadedData = () => {
 
 const onCanPlay = () => {
   isLoading.value = false;
+};
+
+const onWaiting = () => {
+  isLoading.value = true;
 };
 
 const onVideoError = () => {

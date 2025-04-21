@@ -39,7 +39,23 @@
         :aria-label="playButtonState.title"
         @click="$emit('toggle-play')"
       >
-        {{ playButtonState.icon }}
+        <component
+          :is="playButtonState.icon"
+          :size="playButtonState.size"
+          aria-hidden="true"
+        />
+      </button>
+      <button
+        class="player-controls__button player-controls__button--replay"
+        :title="replayButtonMeta.title"
+        :aria-label="replayButtonMeta.title"
+        @click="$emit('replay')"
+      >
+        <component
+          :is="replayButtonMeta.icon"
+          :size="replayButtonMeta.size"
+          aria-hidden="true"
+        />
       </button>
       <div class="player-controls__time">
         {{ timeDisplay }}
@@ -53,7 +69,11 @@
       :title="muteButtonState.title"
       :aria-label="muteButtonState.title"
     >
-      {{ muteButtonState.icon }}
+      <component
+        :is="muteButtonState.icon"
+        :size="muteButtonState.size"
+        aria-hidden="true"
+      />
     </button>
 
     <div
@@ -82,6 +102,11 @@
         "
       />
       <div class="player-controls__tooltip" aria-hidden="true">
+        <component
+          :is="volumeMeta.icon"
+          :size="volumeMeta.size"
+          aria-hidden="true"
+        />
         {{ volumeMeta.label }}
       </div>
     </div>
@@ -96,7 +121,11 @@
         :aria-label="chapterNavButtons.prev.title"
         @click="seekToPreviousChapter"
       >
-        {{ chapterNavButtons.prev.icon }}
+        <component
+          :is="chapterNavButtons.prev.icon"
+          :size="chapterNavButtons.prev.size"
+          aria-hidden="true"
+        />
       </button>
       <div
         class="player-controls__chapter-title"
@@ -105,7 +134,7 @@
         :aria-label="currentChapter?.title"
         :title="currentChapter?.title"
       >
-        {{ currentChapter?.title }}
+        {{ currentChapterTitle }}
       </div>
       <button
         class="player-controls__button player-controls__button--chapter-nav"
@@ -113,7 +142,11 @@
         :aria-label="chapterNavButtons.next.title"
         @click="seekToNextChapter"
       >
-        {{ chapterNavButtons.next.icon }}
+        <component
+          :is="chapterNavButtons.next.icon"
+          :size="chapterNavButtons.next.size"
+          aria-hidden="true"
+        />
       </button>
     </div>
 
@@ -142,6 +175,11 @@
         "
       />
       <div class="player-controls__tooltip" aria-hidden="true">
+        <component
+          :is="playbackRateMeta.icon"
+          :size="playbackRateMeta.size"
+          aria-hidden="true"
+        />
         {{ playbackRateMeta.label }}
       </div>
     </div>
@@ -152,10 +190,12 @@
       :aria-label="skipButtonMeta.rewind.title"
       @click="$emit('skip', -10)"
     >
-      <span class="icon" aria-hidden="true">
-        {{ `${skipButtonMeta.rewind.icon}` }}
-      </span>
-      <span class="text">{{ `${skipButtonMeta.rewind.text}` }}</span>
+      <component
+        :is="skipButtonMeta.rewind.icon"
+        :size="skipButtonMeta.rewind.size"
+        aria-hidden="true"
+      />
+      {{ `${skipButtonMeta.rewind.label}` }}
     </button>
     <button
       class="player-controls__button player-controls__button--skip"
@@ -163,10 +203,12 @@
       :aria-label="skipButtonMeta.forward.title"
       @click="$emit('skip', 25)"
     >
-      <span class="text">{{ `${skipButtonMeta.forward.text}` }}</span>
-      <span class="icon" aria-hidden="true">
-        {{ `${skipButtonMeta.forward.icon}` }}
-      </span>
+      {{ `${skipButtonMeta.forward.label}` }}
+      <component
+        :is="skipButtonMeta.forward.icon"
+        :size="skipButtonMeta.forward.size"
+        aria-hidden="true"
+      />
     </button>
     <button
       class="player-controls__button player-controls__button--fullscreen"
@@ -175,7 +217,11 @@
       :aria-pressed="props.isFullscreen"
       @click="$emit('toggle-fullscreen')"
     >
-      {{ fullscreenButtonState.icon }}
+      <component
+        :is="fullscreenButtonState.icon"
+        :size="fullscreenButtonState.size"
+        aria-hidden="true"
+      />
     </button>
     <button
       class="player-controls__button player-controls__button--cc"
@@ -185,9 +231,11 @@
       :class="{ 'is-active': props.captionsEnabled }"
       @click="$emit('toggle-captions')"
     >
-      <span class="player-controls__cc-text">{{
-        closedCaptionsMeta.label
-      }}</span>
+      <component
+        :is="closedCaptionsMeta.icon"
+        :size="closedCaptionsMeta.size"
+        aria-hidden="true"
+      />
     </button>
     <div
       v-if="captionsEnabled && currentSubtitle"
@@ -207,10 +255,12 @@ import {
   onMounted,
   onBeforeUnmount,
   watch,
+  toRef,
 } from 'vue';
 import { throttle } from 'lodash-es';
 import { formatTime } from '@/utilities/timeUtils';
 import type { Chapter, Subtitle } from '@/types';
+import { usePlayerMeta } from '@/composables/usePlayerMeta';
 
 const props = defineProps<{
   progressPercent: number;
@@ -229,6 +279,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'toggle-play'): void;
   (e: 'toggle-mute'): void;
+  (e: 'replay'): void;
   (e: 'toggle-fullscreen'): void;
   (e: 'toggle-captions'): void;
   (e: 'seek', time: number): void;
@@ -249,61 +300,39 @@ const isHovered = ref(false);
 const currentHoveredChapter = ref<Chapter | null>(null);
 
 const volumePercent = computed(() => `${Math.round(props.volume * 100)}%`);
-const playbackRateValue = computed(() => props.playbackRate.toFixed(1));
+const playbackRateLabel = computed(() => props.playbackRate.toFixed(1));
 const currentChapter = computed(() => getChapterAt(props.currentTime));
+const isEnded = computed(() => props.currentTime >= props.duration);
 
 const timeDisplay = computed(() => {
   return `${formatTime(props.currentTime)} / ${formatTime(props.duration)}`;
 });
 
-const playButtonState = computed(() =>
-  props.isPlaying
-    ? { title: 'Pause', icon: '\u275A\u275A' }
-    : { title: 'Play', icon: '\u25BA' }
+const currentChapterTitle = computed(
+  () =>
+    currentChapter.value?.title ||
+    (isEnded.value ? 'End of video' : 'No chapter')
 );
 
-const muteButtonState = computed(() =>
-  props.isMuted
-    ? { title: 'Unmute', icon: '\u{1F507}' }
-    : { title: 'Mute', icon: '\u{1F50A}' }
-);
-
-const fullscreenButtonState = computed(() =>
-  props.isFullscreen
-    ? { title: 'Exit Fullscreen', icon: '\u{1F5D6}' }
-    : { title: 'Enter Fullscreen', icon: '\u26F6' }
-);
-
-const playbackRateMeta = computed(() => ({
-  title: 'Playback Rate',
-  label: `\u23E9 ${playbackRateValue.value}`,
-}));
-
-const volumeMeta = computed(() => ({
-  title: 'Volume',
-  label: `\u{1F50A} ${volumePercent.value}`,
-}));
-
-const closedCaptionsMeta = computed(() => ({
-  title: 'Subtitles/closed captions (c)',
-  label: 'cc',
-}));
-
-const skipButtonMeta = computed(() => ({
-  forward: { title: 'Skip Forward', icon: '\u21BB', text: '25s' },
-  rewind: { title: 'Skip Rewind', icon: '\u21BA', text: '10s' },
-}));
-
-const chapterNavButtons = computed(() => ({
-  next: {
-    title: 'Next Chapter',
-    icon: '\u23ED',
-  },
-  prev: {
-    title: 'Previous Chapter',
-    icon: '\u23EE',
-  },
-}));
+const {
+  playButtonState,
+  muteButtonState,
+  fullscreenButtonState,
+  replayButtonMeta,
+  playbackRateMeta,
+  volumeMeta,
+  closedCaptionsMeta,
+  skipButtonMeta,
+  chapterNavButtons,
+} = usePlayerMeta({
+  isPlaying: toRef(props, 'isPlaying'),
+  isMuted: toRef(props, 'isMuted'),
+  isFullscreen: toRef(props, 'isFullscreen'),
+  volume: toRef(props, 'volume'),
+  playbackRate: toRef(props, 'playbackRate'),
+  volumePercent,
+  playbackRateLabel,
+});
 
 const chapterHighlightStyle = computed(() => {
   if (!isHovered.value || !props.duration || !currentHoveredChapter.value)
@@ -455,10 +484,10 @@ onBeforeUnmount(() => {
   position: absolute;
   bottom: 0;
   width: 100%;
+  color: $white;
   flex-wrap: wrap;
   transition: all 0.3s;
   background: rgba($black, 0.3);
-  font-size: clamp(1rem, 2vw, 1.6rem);
 
   @include hover-only {
     transform: translateY(calc(100% - 5px));
@@ -472,23 +501,15 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     flex: 1;
-    gap: 0.5rem;
   }
 
   &__time {
-    color: $white;
-    font-size: 0.55rem;
-    align-self: center;
-    text-align: center;
+    font-size: 0.7rem;
     display: none;
-    flex: 0 1 auto;
-
-    @include respond-to('xs') {
-      display: block;
-    }
+    min-width: 5rem;
 
     @include respond-to('sm') {
-      font-size: 0.7rem;
+      display: block;
     }
   }
 
@@ -496,27 +517,14 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    background: none;
+    background: transparent;
     border: 0;
-    color: $white;
+    color: inherit;
     text-align: center;
     cursor: pointer;
     padding: 0.45em 0.8rem;
-    max-width: 4rem;
     font-size: 0.75rem;
-
-    .icon {
-      font-size: 1.3rem;
-      line-height: 1;
-      transform: translateY(-2px);
-    }
-
-    &--mute,
-    &--fullscreen,
-    &--skip {
-      max-width: 3rem;
-    }
+    flex: 0 0 3rem;
 
     &--mute {
       display: none;
@@ -528,33 +536,24 @@ onBeforeUnmount(() => {
 
     &--skip {
       display: none;
+      align-items: center;
 
       @include respond-to('sm-md') {
         display: flex;
       }
     }
 
-    &--cc,
-    &--chapter-nav {
+    &--cc {
       background: rgba($white, 0.2);
       transition: background 0.2s ease;
 
       &:hover {
         background: rgba($primary-green, 0.3);
       }
-    }
-
-    &--cc {
-      font-weight: bold;
-      text-transform: uppercase;
 
       &.is-active {
         background: $primary-green;
       }
-    }
-
-    &--chapter-nav {
-      min-width: 2.5rem;
     }
   }
 
@@ -603,6 +602,13 @@ onBeforeUnmount(() => {
         display: flex;
       }
     }
+
+    .player-controls__tooltip {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      justify-content: space-between;
+    }
   }
 
   :is(&__slider:hover, &__slider:focus) + &__tooltip {
@@ -621,36 +627,32 @@ onBeforeUnmount(() => {
 
   &__chapter-nav {
     display: flex;
-    max-width: 14rem;
+    width: 30%;
     justify-content: center;
     gap: 4px;
     margin: 0 0.8rem;
-    flex: 0 1 auto;
-
-    @include respond-to('sm') {
-      max-width: 16rem;
-    }
+    flex: 0 0 auto;
 
     &.is-fullscreen {
-      max-width: none;
+      width: 35%;
     }
   }
 
   &__chapter-title {
+    flex: 1;
     align-self: center;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: center;
-    color: $white;
     font-size: 0.85rem;
+    width: 65%;
   }
 
   &__tooltip,
   &__chapter-overlay {
     position: absolute;
     background: rgba($black, 0.8);
-    color: $white;
     border-radius: 4px;
     user-select: none;
     z-index: 10;
@@ -674,7 +676,6 @@ onBeforeUnmount(() => {
     width: 100%;
     text-align: center;
     font-size: 1rem;
-    color: white;
     text-shadow: 1px 1px 4px rgba($black, 0.8);
     pointer-events: none;
   }
